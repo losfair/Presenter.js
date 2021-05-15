@@ -1,0 +1,23 @@
+lockfileVersion: 5.3
+
+specifiers:
+  esbuild: ^0.11.21
+  typescript: ^4.2.4
+
+devDependencies:
+  esbuild: 0.11.21
+  typescript: 4.2.4
+
+packages:
+
+  /esbuild/0.11.21:
+    resolution: {integrity: sha512-FqpYdJqiTeLDbj3vqxc/fG8UmHIEvQrDaUxSw1oJf4giLd/tnMDUUlXellCjOab7qGKQ5hUFD5eQgmO+tkZeow==}
+    hasBin: true
+    requiresBuild: true
+    dev: true
+
+  /typescript/4.2.4:
+    resolution: {integrity: sha512-V+evlYHZnQkaz8TRBuxTA92yZBPotr5H+WhQ7bD3hZUndx5tGOa1fuCgeSjxAzM1RiN5IzvadIXTVefuuwZCRg==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
