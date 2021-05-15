@@ -1,5 +1,5 @@
-import { errBadSession, generateRandomNumericString, hexEncode, mkJsonResponse, randomHex32 } from "./util";
-import { SessionInfo } from "./session"
+import { errBadSession, generateRandomNumericString, hexEncode, mkJsonResponse, randomHex32, sleepMs } from "./util";
+import { PresentationState, SessionInfo } from "./session"
 import { awsSign } from "./awsApi";
 
 const connectionTtlMs = 600 * 1000; // 10 mins
@@ -14,6 +14,10 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
     return handleSessionCreation(event.request);
   } else if(url.pathname == "/control/put_slide") {
     return handlePutSlide(event.request);
+  } else if(url.pathname == "/control/update_state") {
+    return handleUpdateState(event.request);
+  } else if(url.pathname == "/control/poll_state") {
+    return handlePollState(event.request);
   } else if(url.pathname == "/control/renew_session") {
     const payload: unknown = await event.request.json();
     const sessionProps = await loadSession(payload);
@@ -35,6 +39,54 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
   } else {
     return mkJsonResponse(404, {"error": "not found"});
   }
+}
+
+async function handleUpdateState(request: Request): Promise<Response> {
+  const payload: unknown = await request.json();
+  const totalPages: unknown = (payload as any).totalPages;
+  const currentPage: unknown = (payload as any).currentPage;
+  if(!isNaturalNumber(totalPages) || !isNaturalNumber(currentPage)) {
+    return mkJsonResponse(400, {"error": "bad parameters"});
+  }
+
+  const sessionProps = await loadSession(payload);
+  if(!sessionProps) return errBadSession();
+  const [code, session] = sessionProps;
+
+  const preState: PresentationState = {
+    totalPages,
+    currentPage,
+    updateTime: Date.now(),
+  };
+  await kv.presentations.put(session.token, JSON.stringify(preState));
+  return mkJsonResponse(200, {});
+}
+
+async function handlePollState(request: Request): Promise<Response> {
+  const payload: unknown = await request.json();
+  const sessionProps = await loadSessionUnauthenticated(payload);
+  if(!sessionProps) return errBadSession();
+  const [code, session] = sessionProps;
+
+  const lastTime: unknown = (payload as any).lastTime;
+  if(!isNaturalNumber(lastTime)) {
+    return mkJsonResponse(400, {"error": "bad parameters"});
+  }
+
+  // 15 seconds
+  for(let i = 0; i < 15; i++) {
+    const psRaw = await kv.presentations.get(session.token);
+    if(psRaw) {
+      const ps: PresentationState = JSON.parse(psRaw);
+      if(ps.updateTime > lastTime) return mkJsonResponse(200, ps);
+    }
+    await sleepMs(1000);
+  }
+  return mkJsonResponse(200, null);
+}
+
+function isNaturalNumber(x: unknown): x is number {
+  return typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
 }
 
 async function handlePutSlide(request: Request): Promise<Response> {
@@ -102,6 +154,13 @@ async function handleSessionCreation(request: Request): Promise<Response> {
   if(!sessionAllocOk) {
     return mkJsonResponse(500, {"error": "session allocation failed - try again."});
   }
+
+  const preState: PresentationState = {
+    totalPages: 0,
+    currentPage: 0,
+    updateTime: Date.now(),
+  };
+  await kv.presentations.put(info.token, JSON.stringify(preState));
   return mkJsonResponse(200, {
     code: connectionCode,
     token: info.token,
@@ -109,8 +168,19 @@ async function handleSessionCreation(request: Request): Promise<Response> {
 }
 
 async function loadSession(form: unknown): Promise<[string, SessionInfo] | null> {
-  const code = "" + (form as any).code;
   const token = "" + (form as any).token;
+  const session = await loadSessionUnauthenticated(form);
+  if(!session) return null;
+
+  if(session[1].token !== token) {
+    return null;
+  }
+
+  return session;
+}
+
+async function loadSessionUnauthenticated(form: unknown): Promise<[string, SessionInfo] | null> {
+  const code = "" + (form as any).code;
 
   const sessionRaw = await kv.sessions.get(code);
   if(!sessionRaw) {
@@ -118,9 +188,5 @@ async function loadSession(form: unknown): Promise<[string, SessionInfo] | null>
   }
 
   const session: SessionInfo = JSON.parse(sessionRaw);
-  if(session.token !== token) {
-    return null;
-  }
-
   return [code, session];
 }

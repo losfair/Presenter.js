@@ -35,3 +35,7 @@ export function mkJsonResponse(status: number, data: unknown): Response {
 export function errBadSession(): Response {
   return mkJsonResponse(401, {"error": "bad session credentials"});
 }
+
+export function sleepMs(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
