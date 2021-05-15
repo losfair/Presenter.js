@@ -1,5 +1,6 @@
-import { errBadSession, generateRandomNumericString, mkJsonResponse, randomHex32 } from "./util";
+import { errBadSession, generateRandomNumericString, hexEncode, mkJsonResponse, randomHex32 } from "./util";
 import { SessionInfo } from "./session"
+import { awsSign } from "./awsApi";
 
 const connectionTtlMs = 600 * 1000; // 10 mins
 
@@ -12,12 +13,10 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
   if(url.pathname == "/control/create_session") {
     return handleSessionCreation(event.request);
   } else if(url.pathname == "/control/put_slide") {
-    const form = await event.request.formData();
-    const sessionProps = await loadSession(form);
-    return mkJsonResponse(200, {"info": "not implemented"});
+    return handlePutSlide(event.request);
   } else if(url.pathname == "/control/renew_session") {
-    const form = await event.request.formData();
-    const sessionProps = await loadSession(form);
+    const payload: unknown = await event.request.json();
+    const sessionProps = await loadSession(payload);
     if(!sessionProps) return errBadSession();
 
     const [code, session] = sessionProps;
@@ -36,6 +35,43 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
   } else {
     return mkJsonResponse(404, {"error": "not found"});
   }
+}
+
+async function handlePutSlide(request: Request): Promise<Response> {
+  const payload: unknown = await request.json();
+  const slideIndex = (payload as any).slideIndex;
+  if(typeof slideIndex !== "number" || slideIndex < 0 || !Number.isSafeInteger(slideIndex)) {
+    return mkJsonResponse(400, {"error": "bad index"});
+  }
+  const sessionProps = await loadSession(payload);
+  if(!sessionProps) return errBadSession();
+  const [code, session] = sessionProps;
+  const tokenHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(session.token));
+  const tokenHashS = hexEncode(new Uint8Array(tokenHash));
+
+  const opts: {
+    host: string,
+    path: string,
+    method: string,
+    service: string,
+    signQuery: boolean,
+    region: string,
+    headers?: Record<string, string>,
+  } = {
+    host: S3_DOMAIN,
+    path: `/slides/${tokenHashS}/${slideIndex}.png`,
+    method: "PUT",
+    service: "s3",
+    headers: {
+      "Content-Type": "image/png",
+    },
+    region: S3_REGION,
+    signQuery: true,
+  };
+  awsSign(opts);
+  return mkJsonResponse(200, {
+    uploadUrl: `https://${opts.host}${opts.path}`,
+  });
 }
 
 async function handleSessionCreation(request: Request): Promise<Response> {
@@ -72,9 +108,9 @@ async function handleSessionCreation(request: Request): Promise<Response> {
   });
 }
 
-async function loadSession(form: FormData): Promise<[string, SessionInfo] | null> {
-  const code = form.get("code")?.toString() || "";
-  const token = form.get("token")?.toString() || "";
+async function loadSession(form: unknown): Promise<[string, SessionInfo] | null> {
+  const code = "" + (form as any).code;
+  const token = "" + (form as any).token;
 
   const sessionRaw = await kv.sessions.get(code);
   if(!sessionRaw) {

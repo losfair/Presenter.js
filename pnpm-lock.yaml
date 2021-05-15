@@ -1,14 +1,22 @@
 lockfileVersion: 5.3
 
 specifiers:
+  base64-js: ^1.5.1
   esbuild: ^0.11.21
   typescript: ^4.2.4
+
+dependencies:
+  base64-js: 1.5.1
 
 devDependencies:
   esbuild: 0.11.21
   typescript: 4.2.4
 
 packages:
+
+  /base64-js/1.5.1:
+    resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
+    dev: false
 
   /esbuild/0.11.21:
     resolution: {integrity: sha512-FqpYdJqiTeLDbj3vqxc/fG8UmHIEvQrDaUxSw1oJf4giLd/tnMDUUlXellCjOab7qGKQ5hUFD5eQgmO+tkZeow==}
