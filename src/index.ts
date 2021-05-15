@@ -18,6 +18,8 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
     return handleUpdateState(event.request);
   } else if(url.pathname == "/control/poll_state") {
     return handlePollState(event.request);
+  } else if(url.pathname == "/control/load_slide") {
+    return handleLoadSlide(event.request);
   } else if(url.pathname == "/control/renew_session") {
     const payload: unknown = await event.request.json();
     const sessionProps = await loadSession(payload);
@@ -89,10 +91,43 @@ function isNaturalNumber(x: unknown): x is number {
   return typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
 }
 
+async function handleLoadSlide(request: Request): Promise<Response> {
+  const payload: unknown = await request.json();
+  const slideIndex: unknown = (payload as any).slideIndex;
+  if(!isNaturalNumber(slideIndex)) {
+    return mkJsonResponse(400, {"error": "bad index"});
+  }
+  const sessionProps = await loadSessionUnauthenticated(payload);
+  if(!sessionProps) return errBadSession();
+  const [code, session] = sessionProps;
+  const tokenHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(session.token));
+  const tokenHashS = hexEncode(new Uint8Array(tokenHash));
+
+  const opts: {
+    host: string,
+    path: string,
+    method: string,
+    service: string,
+    signQuery: boolean,
+    region: string,
+  } = {
+    host: S3_DOMAIN,
+    path: `/slides/${tokenHashS}/${slideIndex}.png`,
+    method: "GET",
+    service: "s3",
+    region: S3_REGION,
+    signQuery: true,
+  };
+  awsSign(opts);
+  return mkJsonResponse(200, {
+    slideUrl: `https://${opts.host}${opts.path}`,
+  });
+}
+
 async function handlePutSlide(request: Request): Promise<Response> {
   const payload: unknown = await request.json();
-  const slideIndex = (payload as any).slideIndex;
-  if(typeof slideIndex !== "number" || slideIndex < 0 || !Number.isSafeInteger(slideIndex)) {
+  const slideIndex: unknown = (payload as any).slideIndex;
+  if(!isNaturalNumber(slideIndex)) {
     return mkJsonResponse(400, {"error": "bad index"});
   }
   const sessionProps = await loadSession(payload);
