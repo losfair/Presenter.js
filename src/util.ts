@@ -39,3 +39,34 @@ export function errBadSession(): Response {
 export function sleepMs(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+const ext2mime: Record<string, string> = {
+  "css": "text/css",
+  "html": "text/html",
+  "js": "text/javascript",
+}
+
+export function handleStaticFile(url: URL) {
+  let filePath: string;
+  if(url.pathname.endsWith("/")) {
+    filePath = url.pathname + "index.html";
+  } else {
+    filePath = url.pathname;
+  }
+  filePath = "./fe" + filePath;
+  let file = getFileFromBundle(filePath);
+  if(file === null) {
+    return new Response("not found: " + filePath, {
+      status: 404,
+    });
+  } else {
+    const fileParts = filePath.split(".");
+    const fileExt = fileParts[fileParts.length - 1];
+    let contentType = ext2mime[fileExt] || "application/octet-stream";
+    return new Response(file, {
+      headers: {
+        "Content-Type": contentType,
+      }
+    });
+  }
+}

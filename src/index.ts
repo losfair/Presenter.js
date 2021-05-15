@@ -1,4 +1,4 @@
-import { errBadSession, generateRandomNumericString, hexEncode, mkJsonResponse, randomHex32, sleepMs } from "./util";
+import { errBadSession, generateRandomNumericString, handleStaticFile, hexEncode, mkJsonResponse, randomHex32, sleepMs } from "./util";
 import { PresentationState, SessionInfo } from "./session"
 import { awsSign } from "./awsApi";
 
@@ -39,7 +39,7 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
     if(!updated) return errBadSession();
     return mkJsonResponse(200, {});
   } else {
-    return mkJsonResponse(404, {"error": "not found"});
+    return handleStaticFile(url);
   }
 }
 
