@@ -20,6 +20,6 @@ export async function loadSlide(connCode, index) {
   if(!imageRes.ok) throw new Error("fetch slide failed: " + await imageRes.text());
   const imageBuf = await imageRes.arrayBuffer();
 
-  const blob = new Blob( [ new Uint8Array(imageBuf) ], { type: "image/png" } );
+  const blob = new Blob( [ new Uint8Array(imageBuf) ], { type: "image/webp" } );
   return blob;
 }

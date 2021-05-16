@@ -128,7 +128,7 @@ async function handlePdfUpload(event) {
 
     for(let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-      var viewport = page.getViewport({scale: 2});
+      var viewport = page.getViewport({scale: 3});
   
       var canvas = document.createElement("canvas");
       var context = canvas.getContext("2d");
@@ -185,7 +185,7 @@ async function syncPresentationState() {
 }
 
 async function uploadPdfPage(pageIndex, canvas) {
-  const blob = await new Promise(resolve => canvas.toBlob(resolve));
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp"));
   const urlCreator = window.URL || window.webkitURL;
   const imageUrl = urlCreator.createObjectURL( blob );
   const image = new Image();
@@ -211,7 +211,7 @@ async function uploadPdfPage(pageIndex, canvas) {
     const uploadRes = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
-        "Content-Type": "image/png",
+        "Content-Type": "image/webp",
       },
       body: blob,
     });

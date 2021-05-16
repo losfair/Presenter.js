@@ -111,7 +111,7 @@ async function handleLoadSlide(request: Request): Promise<Response> {
   const tokenHashS = hexEncode(new Uint8Array(tokenHash));
 
   return mkJsonResponse(200, {
-    slideUrl: `https://${S3_DOMAIN}/slides/${tokenHashS}/${slideIndex}.png`,
+    slideUrl: `https://${S3_DOMAIN}/slides/${tokenHashS}/${slideIndex}.webp`,
   });
 }
 
@@ -137,11 +137,11 @@ async function handlePutSlide(request: Request): Promise<Response> {
     headers?: Record<string, string>,
   } = {
     host: S3_DOMAIN,
-    path: `/slides/${tokenHashS}/${slideIndex}.png`,
+    path: `/slides/${tokenHashS}/${slideIndex}.webp`,
     method: "PUT",
     service: "s3",
     headers: {
-      "Content-Type": "image/png",
+      "Content-Type": "image/webp",
     },
     region: S3_REGION,
     signQuery: true,
