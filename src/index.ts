@@ -161,17 +161,17 @@ async function handleSessionCreation(request: Request): Promise<Response> {
   let sessionAllocOk = false;
 
   // Retry until we got a session
-  for(let i = 0; i < 3; i++) {
+  for(let i = 0; i < 7; i++) {
     // Atomically insert
-    connectionCode = generateRandomNumericString(8);
+    connectionCode = generateRandomNumericString(4 + i);
     await kv.sessions.put(connectionCode, JSON.stringify(info), {
       ttlMs: connectionTtlMs,
       ifNotExists: true,
     });
 
     // If succeeded...
-    const entry: SessionInfo = JSON.parse(await kv.sessions.get(connectionCode) || "");
-    if(entry.token === info.token) {
+    const entry: SessionInfo | null = JSON.parse(await kv.sessions.get(connectionCode) || "null");
+    if(entry && entry.token === info.token) {
       sessionAllocOk = true;
       break;
     }
