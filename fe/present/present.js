@@ -38,7 +38,9 @@ async function onready() {
   const credsBox = document.querySelector(".credentials-box");
   credsBox.style.display = "block";
 
-  document.querySelector(".credentials-view").innerText = "Presentation Code: " + globalCode;
+  document.querySelector(".credentials-view").innerText =
+    "Presentation Code: " + globalCode + "\n" +
+    `View: https://${window.location.hostname}/view/`;
 
   const resetCredsBtn = document.querySelector("#reset-creds-btn");
   resetCredsBtn.addEventListener("click", resetCreds);
