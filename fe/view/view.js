@@ -1,3 +1,5 @@
+import { loadSlide } from "../../felib/util";
+
 window.addEventListener("load", onready);
 function onready() {
   const connBtn = document.getElementById("conn-btn");
@@ -81,25 +83,7 @@ function launchPersistentConnection(connCode) {
         promises.push((async () => {
           while(true) {
             try {
-              const metaRes = await fetch("/control/load_slide", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  code: connCode,
-                  slideIndex: index,
-                }),
-              });
-              if(!metaRes.ok) throw new Error("load_slide failed: " + await metaRes.text());
-              const { slideUrl } = await metaRes.json();
-
-              const imageRes = await fetch(slideUrl);
-              if(!imageRes.ok) throw new Error("fetch slide failed: " + await imageRes.text());
-              const imageBuf = await imageRes.arrayBuffer();
-              console.log(imageBuf);
-
-              const blob = new Blob( [ new Uint8Array(imageBuf) ], { type: "image/png" } );
+              const blob = await loadSlide(connCode, index);
               const urlCreator = window.URL || window.webkitURL;
               var imageUrl = urlCreator.createObjectURL( blob );
               return imageUrl;

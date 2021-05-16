@@ -5,6 +5,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dis
 window.addEventListener("load", onready);
 
 let globalCode = "", globalToken = "";
+let pdfPages = [];
+let pdfPageBoxes = [];
+let currentPage = 0, totalPages = 0;
 
 async function onready() {
   console.log(pdfjsLib);
@@ -15,18 +18,88 @@ async function onready() {
 
   periodicallyRenewSession();
 
+  const pollStateRes = await fetch("/control/poll_state", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      code: globalCode,
+      lastTime: 0,
+    }),
+  });
+  if(!pollStateRes.ok) throw new Error("Poll state error: " + await pollStateRes.text());
+  const cloudState = await pollStateRes.json();
+  currentPage = cloudState.currentPage;
+  totalPages = cloudState.totalPages;
+
   document.querySelector(".scene-loading").style.display = "none";
-  document.querySelector(".credentials-view").innerText = "Code: " + globalCode;
+
+  const credsBox = document.querySelector(".credentials-box");
+  credsBox.style.display = "block";
+
+  document.querySelector(".credentials-view").innerText = "Presentation Code: " + globalCode;
+
   const resetCredsBtn = document.querySelector("#reset-creds-btn");
-  resetCredsBtn.style.display = "inline-block";
   resetCredsBtn.addEventListener("click", resetCreds);
+
   document.querySelector(".scene-upload").style.display = "block";
 
-  document.querySelector("#pdf-input").addEventListener("change", handlePdfUpload);
+  if(totalPages) {
+    // Sync state from cloud
+    document.querySelector(".scene-upload-state").innerText = "Syncing slides";
+    const promises = [];
+    for(let i = 1; i <= totalPages; i++) {
+      promises.push(util.loadSlide(globalCode, i));
+    }
+    const blobs = await Promise.all(promises);
+    pdfPages = blobs.map(x => {
+      const urlCreator = window.URL || window.webkitURL;
+      const imageUrl = urlCreator.createObjectURL(x);
+      const image = new Image();
+      image.src = imageUrl;
+      return image;
+    });
+
+    document.querySelector(".scene-upload").style.display = "none";
+    showPresentatationControl();
+  } else {
+    // Nothing's uploaded yet
+    document.querySelector("#pdf-input").addEventListener("change", handlePdfUpload);
+  }
+}
+
+function showPresentatationControl() {
+  const slideListElem = document.querySelector("#pcontrol-slides");
+  let index = 1;
+  for(const page of pdfPages) {
+    const box = document.createElement("div");
+    box.className = "pcontrol-slide-box";
+    page.className = "pcontrol-img";
+    box.appendChild(page);
+    slideListElem.appendChild(box);
+    pdfPageBoxes.push(box);
+    let thisIndex = index;
+    box.addEventListener("click", () => {
+      currentPage = thisIndex;
+      syncPresentationState();
+      applyPresentationControlState();
+    })
+    index++;
+  }
+  document.querySelector(".scene-pcontrol").style.display = "block";
+  applyPresentationControlState();
+}
+
+function applyPresentationControlState() {
+  for(const box of pdfPageBoxes) {
+    box.dataset.active = "0";
+  }
+  pdfPageBoxes[currentPage - 1].dataset.active = "1";
 }
 
 function resetCreds() {
-  if(confirm("Reset credentials?")) {
+  if(confirm("Reset session?")) {
     delete localStorage.savedCreds;
     window.location.reload();
   }
@@ -36,7 +109,7 @@ async function handlePdfUpload(event) {
   const file = event.target.files[0];
   if(!file) return;
 
-  document.querySelector(".scene-upload").style.display = "none";
+  document.querySelector(".scene-upload-state").innerText = "Processing";
 
   try {
     const pdfBuf = await new Promise(resolve => {
@@ -67,11 +140,28 @@ async function handlePdfUpload(event) {
       var renderTask = page.render(renderContext);
       await renderTask.promise;
 
+      pdfPages.push(null);
       pushPromises.push(uploadPdfPage(i, canvas));
     }
     await Promise.all(pushPromises);
     console.log("Rendered and uploaded all pages.");
 
+    currentPage = 1;
+    totalPages = pdf.numPages;
+    await syncPresentationState();
+  } catch(e) {
+    console.log(e);
+    alert("Error processing PDF: " + e);
+    window.location.reload();
+    return;
+  }
+
+  document.querySelector(".scene-upload").style.display = "none";
+  showPresentatationControl();
+}
+
+async function syncPresentationState() {
+  try {
     const updateStateRes = await fetch("/control/update_state", {
       method: "POST",
       headers: {
@@ -80,8 +170,8 @@ async function handlePdfUpload(event) {
       body: JSON.stringify({
         code: globalCode,
         token: globalToken,
-        totalPages: pdf.numPages,
-        currentPage: 1,
+        totalPages: totalPages,
+        currentPage: currentPage,
       }),
     });
     if(!updateStateRes.ok) {
@@ -89,13 +179,16 @@ async function handlePdfUpload(event) {
     }
   } catch(e) {
     console.log(e);
-    alert("Error processing PDF: " + e);
-    window.location.reload();
   }
 }
 
 async function uploadPdfPage(pageIndex, canvas) {
   const blob = await new Promise(resolve => canvas.toBlob(resolve));
+  const urlCreator = window.URL || window.webkitURL;
+  const imageUrl = urlCreator.createObjectURL( blob );
+  const image = new Image();
+  image.src = imageUrl;
+  pdfPages[pageIndex - 1] = image;
   for(let i = 0; i < 3; i++) {
     const putSlideRes = await fetch("/control/put_slide", {
       method: "POST",

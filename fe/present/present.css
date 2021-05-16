@@ -3,6 +3,24 @@ body {
   font-family: Optima-Regular, Optima, PingFangSC-light, PingFangTC-light, "PingFang SC", Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
 }
 
+a {
+  color: #121212;
+}
+
+.container {
+  padding: 16px;
+  color: #121212;
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
+  margin: auto;
+}
+
+.section-title {
+  font-size: 24px;
+  overflow-wrap: break-word;
+}
+
 .btn {
   background-color: #303030;
   color: #FFFFFF;
@@ -12,4 +30,29 @@ body {
 
 .btn:disabled {
   background-color: #B0B0B0;
+}
+
+.footer {
+  margin-top: 80px;
+  color: #7F7F7F;
+  font-size: 12px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.pcontrol-img {
+  display: block;
+  width: 100%;
+}
+
+.pcontrol-slide-box {
+  width: 100%;
+  padding-left: 5px;
+  box-sizing: border-box;
+  border-left: 3px solid #EEEEEE;
+  margin-bottom: 20px;
+}
+
+.pcontrol-slide-box[data-active="1"] {
+  border-left: 3px solid #0066CC;
 }
