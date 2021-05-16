@@ -54,6 +54,17 @@ body {
   text-align: center;
 }
 
+#current-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .slide-image {
   object-fit: contain;
+  margin: auto;
+  display: block;
+  width: 100%;
+  height: 100%;
 }

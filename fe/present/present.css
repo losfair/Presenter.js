@@ -1,0 +1,15 @@
+body {
+  touch-action: manipulation;
+  font-family: Optima-Regular, Optima, PingFangSC-light, PingFangTC-light, "PingFang SC", Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
+}
+
+.btn {
+  background-color: #303030;
+  color: #FFFFFF;
+  padding: 8px 20px;
+  border: none;
+}
+
+.btn:disabled {
+  background-color: #B0B0B0;
+}
