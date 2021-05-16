@@ -110,24 +110,8 @@ async function handleLoadSlide(request: Request): Promise<Response> {
   const tokenHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(session.token));
   const tokenHashS = hexEncode(new Uint8Array(tokenHash));
 
-  const opts: {
-    host: string,
-    path: string,
-    method: string,
-    service: string,
-    signQuery: boolean,
-    region: string,
-  } = {
-    host: S3_DOMAIN,
-    path: `/slides/${tokenHashS}/${slideIndex}.png`,
-    method: "GET",
-    service: "s3",
-    region: S3_REGION,
-    signQuery: true,
-  };
-  awsSign(opts);
   return mkJsonResponse(200, {
-    slideUrl: `https://${opts.host}${opts.path}`,
+    slideUrl: `https://${S3_DOMAIN}/slides/${tokenHashS}/${slideIndex}.png`,
   });
 }
 
