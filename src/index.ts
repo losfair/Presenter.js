@@ -38,6 +38,13 @@ async function handleRequest(event: FetchEvent): Promise<Response> {
     );
     if(!updated) return errBadSession();
     return mkJsonResponse(200, {});
+  } else if(url.pathname == "/") {
+    return new Response("redirecting", {
+      status: 302,
+      headers: {
+        "Location": "/present/",
+      },
+    });
   } else {
     return handleStaticFile(url);
   }
