@@ -1,15 +1,13 @@
 {
   "compilerOptions": {
-      "outDir": "./lib",
-      "allowJs": true,
-      "module": "commonjs",
-      "typeRoots": ["node_modules/@types"],
-      "lib": ["ES2020", "WebWorker"],
-      "types": [],
-      "moduleResolution": "node",
-      "esModuleInterop": true,
-      "strictNullChecks": true,
-      "target": "ES2020"
+    "noImplicitAny": true,
+    "module": "es6",
+    "target": "es2021",
+    "allowJs": true,
+    "moduleResolution": "node",
+    "strictNullChecks": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "./dist",
   },
   "include": ["src"]
 }

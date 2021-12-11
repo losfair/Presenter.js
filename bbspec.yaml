@@ -1,0 +1,12 @@
+appid: net.univalent.presenter-js
+build: ./build.sh
+artifact: dist/bundle.js
+static: ./res
+env:
+- s3Region
+- s3Bucket
+- s3AccessKeyId
+- s3SecretAccessKey
+kv_namespaces:
+- sessions
+- presentations

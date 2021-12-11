@@ -1,5 +1,6 @@
 export interface SessionInfo {
   token: string;
+  createdAt: number;
 }
 
 export interface PresentationState {
