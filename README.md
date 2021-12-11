@@ -1,5 +1,5 @@
 # Presenter.js
 
-Present your slides easily, with remote control. Powered by [rusty-workers](https://github.com/losfair/rusty-workers).
+Present your slides easily, with remote control. A [Blueboat](https://github.com/losfair/blueboat) app.
 
-Available as a service at [Univalence Labs](https://presenter.univalence.me/).
+[Hosted](https://presenter.secondorder.xyz/)
