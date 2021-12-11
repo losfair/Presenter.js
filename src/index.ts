@@ -4,6 +4,15 @@ import { errBadSession, generateRandomNumericString, mkJsonResponse, randomHex32
 import { PresentationState, SessionInfo } from "./session"
 import { appConfig, nsPresentations, nsSessions } from "./config";
 
+Router.use("/", (req, next) => {
+  const u = new URL(req.url);
+  if (u.pathname == "/") {
+    return Response.redirect("/present/", 302);
+  } else {
+    return next(req);
+  }
+});
+
 Router.get("/", App.serveStaticFiles("/", "fe"));
 
 Router.post("/control/update_state", async req => {
