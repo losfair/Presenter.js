@@ -3,6 +3,7 @@
 import { errBadSession, generateRandomNumericString, mkJsonResponse, randomHex32, sleepMs } from "./util";
 import { PresentationState, SessionInfo } from "./session"
 import { appConfig, nsPresentations, nsSessions } from "./config";
+import { bgEntry } from "./background";
 
 Router.use("/", (req, next) => {
   const u = new URL(req.url);
@@ -140,14 +141,22 @@ Router.post("/control/create_session", async request => {
   for (let i = 0; i < 7; i++) {
     // Atomically insert
     connectionCode = generateRandomNumericString(4 + i);
+    const ourValue = new TextEncoder().encode(JSON.stringify(info));
     const ok = await nsSessions.compareAndSetMany([
       {
         key: connectionCode,
         check: "absent",
-        set: { value: new TextEncoder().encode(JSON.stringify(info)) },
+        set: { value: ourValue },
       },
     ]);
     if (ok) {
+      const { id } = await Background.delayed(bgEntry, "deleteSession", {
+        connectionCode,
+        expectedValue: ourValue,
+      }, {
+        tsSecs: Date.now() / 1000 + 4 * 3600,
+      });
+      console.log(`scheduled session deletion: ${id}`);
       sessionAllocOk = true;
       break;
     }
