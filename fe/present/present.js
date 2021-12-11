@@ -16,8 +16,6 @@ async function onready() {
   globalToken = token;
   console.log("Initialized credentials.");
 
-  periodicallyRenewSession();
-
   const pollStateRes = await fetch("/control/poll_state", {
     method: "POST",
     headers: {
@@ -225,23 +223,16 @@ async function uploadPdfPage(pageIndex, canvas) {
   throw new Error(`upload failed for page ${pageIndex} after retrying`);
 }
 
-async function periodicallyRenewSession() {
-  while(true) {
-    try {
-      await renewSession(globalCode, globalToken);
-    } catch(e) {
-      console.log(e);
-    }
-    await util.sleepMs(15 * 1000);
-  }
-}
-
 async function ensureCreds() {
   const savedCredsRaw = localStorage.savedCreds;
   if(savedCredsRaw) {
-    const { code, token } = JSON.parse(savedCredsRaw);
-    if(await renewSession(code, token)) {
-      return { code, token };
+    try {
+      const { code, token, ts } = JSON.parse(savedCredsRaw);
+      if(Date.now() - ts < 3600 * 1000) {
+        return { code, token };
+      }
+    } catch(e) {
+      console.log(e);
     }
   }
 
@@ -254,20 +245,8 @@ async function ensureCreds() {
   });
   if(!res.ok) throw new Error("create_session failed");
   const { code, token } = await res.json();
-  localStorage.savedCreds = JSON.stringify({ code, token });
+  const ts = Date.now();
+  localStorage.savedCreds = JSON.stringify({ code, token, ts });
   return { code, token };
 }
 
-async function renewSession(code, token) {
-  const res = await fetch("/control/renew_session", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      code,
-      token,
-    }),
-  });
-  return res.ok;
-}
